@@ -38,7 +38,6 @@ public class {model.Identifier}Repository : Repository<{model.Identifier}> {{
     }}
 }}
 ";
-
                     context.AddSource($"{model.Identifier}Repo.g.cs", source);
                 }
             }
