@@ -1,73 +1,77 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace CodeGenerator
+[Generator]
+public class RepositoryWrapperGenerator : ISourceGenerator
 {
-    [Generator]
-    public class RepositoryWrapperGenerator : ISourceGenerator
+    public void Execute(GeneratorExecutionContext context)
     {
-        public void Execute(GeneratorExecutionContext context)
+        var syntaxTrees = context.Compilation.SyntaxTrees;
+
+        var helper = new SyntaxHelper();
+
+        string source = string.Empty;
+        foreach (var syntax in syntaxTrees)
         {
-            var syntaxTrees = context.Compilation.SyntaxTrees;
+            var modelTypes = syntax.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
+                .Where(x => x.AttributeLists.Any(y => y.ToString().StartsWith("[DbModel")))
+                .ToList();
 
-            foreach (var syntaxTree in syntaxTrees)
-            {
-                var types = syntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
-                    .Where(x => x.AttributeLists.Any(y => y.ToString().StartsWith("[DbModel")))
-                    .ToList();
+            if(modelTypes.Count == 0)
+                continue;
 
-                foreach (var model in types)
-                {
-                    GetParentSyntax<NamespaceDeclarationSyntax>(model, out var namespaceSyntax);
-
-                    var source = $@"
-using System;
-using Repository.Implements;
-using {namespaceSyntax.Name};
+            source = $@"
 using Microsoft.EntityFrameworkCore;
+using @namespace;
 
-public class {model.Identifier}Repository : Repository<{model.Identifier}> {{
-    public {model.Identifier}Repository(DbContext context) : base(context){{
-        /////////
+namespace @namespace{{
+    public class RepositoryWrapper : IRepositoryWrapper<GenerateDbContext>{{
+    public GenerateDbContext dbContext {{get; set;}}
+
+    public RepositoryWrapper(GenerateDbContext context)
+    {{
+        dbContext = context;
     }}
-}}
 ";
-                    context.AddSource($"{model.Identifier}Repo.g.cs", source);
-                }
-            }
-        }
 
-        private bool GetParentSyntax<T>(SyntaxNode node, out T result) where T : SyntaxNode
-        {
-            result = null;
-
-            if (node == null)
-                return false;
-
-            var currentNode = node;
-
-            while(currentNode != null)
+            var listModelNamespaces = new List<string>();
+            var currentNamespace = string.Empty;
+            foreach (var model in modelTypes)
             {
-                currentNode = currentNode.Parent;
+                source += $@"public {model.Identifier}Repository _{model.Identifier} {{
+                    get {{
+                        return new {model.Identifier}Repository(dbContext);
+                    }}
+                }}" + '\n';
 
-                if (currentNode is T)
-                {
-                    result = currentNode as T;
-                    return true;
+                var namespaceSyntaxFound = helper.GetParentSyntax<NamespaceDeclarationSyntax>(model, out var namespaceDeclaration);
+
+                if(namespaceSyntaxFound && namespaceDeclaration.Name.ToString() != currentNamespace){
+                    currentNamespace = namespaceDeclaration.Name.ToString();
+                    listModelNamespaces.Add(currentNamespace);
                 }
             }
 
-            return false;
+            if(listModelNamespaces.Count > 0) {
+                // Get first namespace
+                var firstNamespace = listModelNamespaces.First();
+
+                var projectNamespace = firstNamespace.Split('.')[0];
+
+                source = source.Replace("@namespace", projectNamespace);
+            }
+
+            source += "}}";
         }
 
-        public void Initialize(GeneratorInitializationContext context)
-        {
-        }
+        if(!string.IsNullOrEmpty(source))
+            context.AddSource("GenerateRepoWrapper.g.cs", source);
+    }
+
+    public void Initialize(GeneratorInitializationContext context)
+    {
+
     }
 }

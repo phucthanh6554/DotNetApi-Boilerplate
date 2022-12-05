@@ -8,11 +8,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 [Generator]
 public class DbContextGenerator : ISourceGenerator
 {
+
     public void Execute(GeneratorExecutionContext context)
     {
+        var helper = new SyntaxHelper();
         var syntaxTrees = context.Compilation.SyntaxTrees;
 
         string source = string.Empty;
+        var mainNamespace = context.Compilation.GetEntryPoint(context.CancellationToken).ContainingNamespace.ToDisplayString();
+        
         foreach (var syntaxTree in syntaxTrees)
         {
             var dbModelTypes = syntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>()
@@ -25,18 +29,18 @@ public class DbContextGenerator : ISourceGenerator
             source = $@"
 using Microsoft.EntityFrameworkCore;
 
-public partial class GenerateDbContext : DbContext{{
-    public GenerateDbContext(DbContextOptions options) : base(options){{
+namespace @namespace{{
+    public partial class GenerateDbContext : DbContext{{
+        public GenerateDbContext(DbContextOptions options) : base(options){{
 
-    }}
-";
+        }}";
             var listModelNamespaces = new List<string>();
             var currentNamespace = string.Empty;
             foreach (var model in dbModelTypes)
             {
                 source += $@"public DbSet<{model.Identifier}> {model.Identifier} {{get;set;}}" + '\n';
 
-                var namespaceSyntaxFound = GetParentSyntax<NamespaceDeclarationSyntax>(model, out var namespaceDeclaration);
+                var namespaceSyntaxFound = helper.GetParentSyntax<NamespaceDeclarationSyntax>(model, out var namespaceDeclaration);
 
                 if(namespaceSyntaxFound && namespaceDeclaration.Name.ToString() != currentNamespace){
                     currentNamespace = namespaceDeclaration.Name.ToString();
@@ -52,39 +56,24 @@ public partial class GenerateDbContext : DbContext{{
 
             source = namespaceStr + source + '\n';
             
-            source += "}";
+            source += "}}";
 
-            Console.WriteLine(source);
+            if(listModelNamespaces.Count > 0) {
+                // Get first namespace
+                var firstNamespace = listModelNamespaces.First();
 
+                var projectNamespace = firstNamespace.Split('.')[0];
+
+                source = source.Replace("@namespace", projectNamespace);
+            }
+
+            if(!string.IsNullOrEmpty(source))
+                context.AddSource("GenerateDbContext.g.cs", source);
         }
-        context.AddSource("GenerateDbContext.g.cs", source);
     }
 
     public void Initialize(GeneratorInitializationContext context)
     {
-
-    }
-
-    private bool GetParentSyntax<T>(SyntaxNode node, out T result) where T : SyntaxNode
-    {
-        result = null;
-
-        if (node == null)
-            return false;
-
-        var currentNode = node;
-
-        while (currentNode != null)
-        {
-            currentNode = currentNode.Parent;
-
-            if (currentNode is T)
-            {
-                result = currentNode as T;
-                return true;
-            }
-        }
-
-        return false;
+        
     }
 }

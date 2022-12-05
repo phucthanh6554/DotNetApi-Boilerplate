@@ -11,4 +11,9 @@ namespace PlaygroundConsole2
     public class Class2
     {
     }
+
+    [DbModel]
+    public class Class3{
+
+    }
 }
