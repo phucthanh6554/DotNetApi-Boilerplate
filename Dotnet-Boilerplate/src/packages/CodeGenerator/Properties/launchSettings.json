@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "CodeGenerator": {
+      "commandName": "Project"
+    },
+    "Profile 1": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\..\\TestRepoConsole\\TestRepoConsole.csproj"
+    }
+  }
+}
