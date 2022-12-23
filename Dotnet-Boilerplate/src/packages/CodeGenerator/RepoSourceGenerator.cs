@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using CodeGenerator.Services;
 using CodeGenerator2.Services;
@@ -148,6 +149,7 @@ public class RepoSourceGenerator : ISourceGenerator
 //    }
     public void Initialize(GeneratorInitializationContext context)
     {
-
+        if (!Debugger.IsAttached)
+            Debugger.Launch();
     }
 }

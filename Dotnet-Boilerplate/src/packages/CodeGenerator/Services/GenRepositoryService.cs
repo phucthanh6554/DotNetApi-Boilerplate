@@ -16,7 +16,7 @@ namespace CodeGenerator.Services
 
         namespace @namespace
         {{
-            public sealed partial class @modelNameRepository : Repository<@modelNameRepository>
+            public sealed partial class @modelNameRepository : Repository<@modelName>
             {{
                 public @modelNameRepository(DbContext dbContext) : base(dbContext)
                 {{

@@ -1,12 +1,15 @@
-﻿using Repository;
+﻿using Microsoft.EntityFrameworkCore;
+using Repository;
 using TestRepoConsole;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
-        var context = new GenerateDbContext(null);
-
-        //repoWrapper.Student
+        var option = new DbContextOptionsBuilder()
+            .UseInMemoryDatabase("demo-db")
+            .Options;
+        var context = new GenerateDbContext(option);
+        var repoWrapper = new RepositoryWrapper(context);
     }
 }

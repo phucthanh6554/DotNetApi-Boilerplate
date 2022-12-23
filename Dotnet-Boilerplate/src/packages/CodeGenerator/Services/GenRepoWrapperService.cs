@@ -20,9 +20,9 @@ namespace CodeGenerator2.Services
                 {{
                     public GenerateDbContext dbContext {{ get; set; }}
 
-                    public RepositoryWrapper(DbContext dbContext)
+                    public RepositoryWrapper(GenerateDbContext _dbContext)
                     {{
-                        dbContext = dbContext;
+                        dbContext = _dbContext;
                     }}
 
                     @listRepository
