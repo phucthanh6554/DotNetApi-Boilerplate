@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,9 +23,18 @@ namespace Repository.Implements
             return _dbContext.Set<T>();
         }
 
+        public EntityEntry<T> Add(T model)
+        {
+            return _dbContext.Set<T>().Add(model);
+        }
+
         public IQueryable<T> FindByCondition(Expression<Func<T, bool>> func)
         {
             return _dbContext.Set<T>().Where(func);
+        }
+
+        public async Task<int> SaveAsync(CancellationToken cancellationToken = default) {
+            return await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }

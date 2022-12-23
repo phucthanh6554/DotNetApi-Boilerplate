@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CodeGenerator
+namespace Repository
 {
-    
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
     public class DbModelAttribute : Attribute
     {
     }
